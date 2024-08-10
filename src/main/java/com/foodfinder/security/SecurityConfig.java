@@ -1,6 +1,8 @@
 package com.foodfinder.security;
 
 import com.nimbusds.jose.JOSEException;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 
 
@@ -27,6 +29,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -40,6 +44,22 @@ public class SecurityConfig {
     private RSAKey rsaKey;
 
 
+    @Bean
+    public AuthenticationManager authManager(UserDetailsService userDetailsService) {
+        var authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        return new ProviderManager(authProvider);
+    }
+
+    @Bean
+    public UserDetailsService user() {
+        return new InMemoryUserDetailsManager(
+                User.withUsername("thomas")
+                        .password("{noop}password")
+                        .authorities("read")
+                        .build()
+        );
+    }
 
 //    @Bean
 //    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
@@ -64,23 +84,17 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeRequests( auth -> auth
-//                        .requestMatchers("/token").permitAll()
+                        .requestMatchers("/token").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
-                .httpBasic(Customizer.withDefaults())
+                .exceptionHandling((ex) -> ex
+                        .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
+                        .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
+                )
+//                .httpBasic(Customizer.withDefaults()) // How to authenticate without httpBasic?
                 .build();
-    }
-
-    @Bean
-    public InMemoryUserDetailsManager user() {
-        return new InMemoryUserDetailsManager(
-                User.withUsername("thomas")
-                    .password("{noop}password")
-                    .authorities("read")
-                    .build()
-        );
     }
 
     @Bean
