@@ -1,5 +1,10 @@
-package com.foodfinder.config;
+package com.foodfinder.security;
 
+import com.nimbusds.jose.JOSEException;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+
+
+import com.foodfinder.config.RsaKeyProperties;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -32,11 +37,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 //@EnableMethodSecurity
 public class SecurityConfig {
 
-    private final RsaKeyProperties rsaKeys;
-
-    public SecurityConfig(RsaKeyProperties rsaKeys) {
-        this.rsaKeys = rsaKeys;
-    }
+    private RSAKey rsaKey;
 
 
 
@@ -63,10 +64,12 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeRequests( auth -> auth
+//                        .requestMatchers("/token").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
+                .httpBasic(Customizer.withDefaults())
                 .build();
     }
 
@@ -81,14 +84,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withPublicKey(rsaKeys.publicKey()).build();
+    public JWKSource<SecurityContext> jwkSource() {
+        rsaKey = Jwks.generateRsa();
+        JWKSet jwkSet = new JWKSet(rsaKey);
+        return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
     }
 
     @Bean
-    JwtEncoder jwtEncoder() {
-        JWK jwk = new RSAKey.Builder(rsaKeys.publicKey()).privateKey(rsaKeys.privateKey()).build();
-        JWKSource<SecurityContext> jwks = new ImmutableJWKSet<>(new JWKSet(jwk));
+    JwtDecoder jwtDecoder() throws JOSEException {
+        return NimbusJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey()).build();
+    }
+
+    @Bean
+    JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwks) {
         return new NimbusJwtEncoder(jwks);
     }
 
