@@ -61,24 +61,6 @@ public class SecurityConfig {
         );
     }
 
-//    @Bean
-//    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-//        return http
-//                .csrf(csrf -> csrf.disable())
-//                .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/main.css").permitAll()
-//                        .anyRequest().authenticated()
-//                )
-//                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
-//                )
-////                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .formLogin(form -> form
-//                        .loginPage("/login")
-//                        .permitAll()
-//                )
-//                .build();
-//    }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -93,7 +75,6 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
                         .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
                 )
-//                .httpBasic(Customizer.withDefaults()) // How to authenticate without httpBasic?
                 .build();
     }
 
