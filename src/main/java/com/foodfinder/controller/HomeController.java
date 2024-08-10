@@ -1,6 +1,7 @@
 package com.foodfinder.controller;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,12 @@ public class HomeController {
     @ResponseBody // for returning string instead of template with that name
     public String home(Principal principal) {
         return "Hello".concat(principal.getName());
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_READ')")
+    @GetMapping("/secure")
+    public String secure() {
+        return "This is secured!";
     }
 
     @GetMapping("/login")
