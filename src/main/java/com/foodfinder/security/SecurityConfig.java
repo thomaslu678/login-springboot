@@ -72,8 +72,8 @@ public class SecurityConfig {
     @Bean
     JdbcUserDetailsManager users(DataSource dataSource, PasswordEncoder encoder) {
         var admin = User.builder()
-                .username("admin")
-                .password(encoder.encode("password?"))
+                .username("thomas")
+                .password(encoder.encode("password"))
                 .roles("ADMIN")
                 .build();
 
@@ -87,15 +87,15 @@ public class SecurityConfig {
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeRequests( auth -> auth
+                .authorizeHttpRequests( auth -> auth
                         .requestMatchers("/main.css").permitAll()
                         .requestMatchers("/token").permitAll()
                         .anyRequest().authenticated()
                 )
 
                 .headers(headers -> headers.frameOptions().sameOrigin())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
+//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+//                .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
 //                .exceptionHandling((ex) -> ex
 //                        .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
 //                        .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
