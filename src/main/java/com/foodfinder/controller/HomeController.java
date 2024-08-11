@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
 
-@RestController
+@Controller
 @CrossOrigin
 public class HomeController {
 
@@ -24,14 +24,13 @@ public class HomeController {
         return "Hello".concat(principal.getName());
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_READ')")
-    @GetMapping("/secure")
-    public String secure() {
-        return "This is secured!";
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin")
+    public String admin() {
+        return "Hello, Admin!";
     }
 
     @GetMapping("/login")
-//    @ResponseBody
     public String login() {
         return "login";
     }
