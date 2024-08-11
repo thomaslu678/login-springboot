@@ -1,6 +1,9 @@
 package com.foodfinder.security;
 
 import com.nimbusds.jose.JOSEException;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -25,6 +28,9 @@ import org.springframework.security.config.annotation.web.configurers.oauth2.ser
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -32,7 +38,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+
+import javax.sql.DataSource;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -52,23 +61,50 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService user() {
-        return new InMemoryUserDetailsManager(
-                User.withUsername("thomas")
-                        .password("{noop}password")
-                        .authorities("read")
-                        .build()
-        );
+    EmbeddedDatabase dataSource() {
+        return new EmbeddedDatabaseBuilder()
+                .setType(EmbeddedDatabaseType.H2)
+                .setName("dashboard")
+                .addScript(JdbcDaoImpl.DEFAULT_USER_SCHEMA_DDL_LOCATION)
+                .build();
     }
+
+    @Bean
+    JdbcUserDetailsManager users(DataSource dataSource, PasswordEncoder encoder) {
+        var admin = User.builder()
+                .username("admin")
+                .password(encoder.encode("password?"))
+                .roles("ADMIN")
+                .build();
+
+        System.out.println(admin.getPassword());
+
+        JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+        jdbcUserDetailsManager.createUser(admin);
+        return jdbcUserDetailsManager;
+    }
+
+//    @Bean
+//    public UserDetailsService user() {
+//        return new InMemoryUserDetailsManager(
+//                User.withUsername("thomas")
+//                        .password("{noop}password")
+//                        .authorities("read")
+//                        .build()
+//        );
+//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
                 .authorizeRequests( auth -> auth
                         .requestMatchers("/token").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                .headers(headers -> headers.frameOptions().sameOrigin())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
                 .exceptionHandling((ex) -> ex
@@ -76,6 +112,11 @@ public class SecurityConfig {
                         .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
                 )
                 .build();
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
