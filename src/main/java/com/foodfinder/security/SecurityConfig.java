@@ -76,9 +76,15 @@ public class SecurityConfig {
                 .password(encoder.encode("password"))
                 .roles("ADMIN")
                 .build();
+        var user = User.builder()
+                .username("user")
+                .password(encoder.encode("password"))
+                .roles("USER")
+                .build();
 
         JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
         jdbcUserDetailsManager.createUser(admin);
+        jdbcUserDetailsManager.createUser(user);
         return jdbcUserDetailsManager;
     }
 

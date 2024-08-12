@@ -24,6 +24,7 @@ public class HomeController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    @ResponseBody
     @GetMapping("/admin")
     public String admin() {
         return "Hello, Admin!";
